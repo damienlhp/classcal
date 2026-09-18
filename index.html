@@ -9,13 +9,51 @@
 
   <h1>ClassCal</h1>
 
+  <table border="1" cellpadding="6">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Type</th>
+        <th>Day</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody id="classTableBody">
+      <!-- rows get filled in here by JavaScript -->
+    </tbody>
+  </table>
+
   <script>
-    // Starts empty — classes are added by the user through the page,
-    // either by typing them in a form or (later) pasting raw schedule text.
-    // Nothing is saved anywhere, so refreshing the page clears it.
+    // Starts empty — classes are added by the user through the page.
     const classes = [];
 
-    console.log(classes); // temporary — just to confirm this is working
+    function renderClasses() {
+      const tbody = document.getElementById("classTableBody");
+
+      // Clear out whatever's currently there before redrawing
+      tbody.innerHTML = "";
+
+      // Loop over every class object in the array
+      for (const c of classes) {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${c.course}</td>
+          <td>${c.type}</td>
+          <td>${c.day}</td>
+          <td>${c.start}</td>
+          <td>${c.end}</td>
+          <td>${c.location}</td>
+        `;
+
+        tbody.appendChild(row);
+      }
+    }
+
+    // Run it once on page load so the table reflects current data
+    renderClasses();
   </script>
 
 </body>
