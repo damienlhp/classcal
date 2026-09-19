@@ -9,6 +9,31 @@
 
   <h1>ClassCal</h1>
 
+  <!-- ADD CLASS FORM -->
+  <h2>Add a class</h2>
+  <div>
+    <input type="text" id="inputCourse" placeholder="Course (e.g. GNG 1105-D00)">
+    <input type="text" id="inputType" placeholder="Type (e.g. Lecture)">
+
+    <select id="inputDay">
+      <option value="Monday">Monday</option>
+      <option value="Tuesday">Tuesday</option>
+      <option value="Wednesday">Wednesday</option>
+      <option value="Thursday">Thursday</option>
+      <option value="Friday">Friday</option>
+      <option value="Saturday">Saturday</option>
+      <option value="Sunday">Sunday</option>
+    </select>
+
+    <input type="time" id="inputStart">
+    <input type="time" id="inputEnd">
+    <input type="text" id="inputLocation" placeholder="Location">
+
+    <button onclick="addClass()">Add Class</button>
+  </div>
+
+  <!-- CLASS TABLE -->
+  <h2>Your classes</h2>
   <table border="1" cellpadding="6">
     <thead>
       <tr>
@@ -29,16 +54,28 @@
     // Starts empty — classes are added by the user through the page.
     const classes = [];
 
+    // Capitalizes the first letter of every word.
+    // "morisset hall 218" -> "Morisset Hall 218"
+    function toTitleCase(str) {
+      return str
+        .toLowerCase()
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    // Uppercases everything and strips out all spaces.
+    // "gng 1105-d00" -> "GNG1105-D00"
+    function normalizeCourse(str) {
+      return str.toUpperCase().replace(/\s+/g, "");
+    }
+
     function renderClasses() {
       const tbody = document.getElementById("classTableBody");
-
-      // Clear out whatever's currently there before redrawing
       tbody.innerHTML = "";
 
-      // Loop over every class object in the array
       for (const c of classes) {
         const row = document.createElement("tr");
-
         row.innerHTML = `
           <td>${c.course}</td>
           <td>${c.type}</td>
@@ -47,12 +84,40 @@
           <td>${c.end}</td>
           <td>${c.location}</td>
         `;
-
         tbody.appendChild(row);
       }
     }
 
-    // Run it once on page load so the table reflects current data
+    function addClass() {
+      const courseRaw = document.getElementById("inputCourse").value;
+      const typeRaw = document.getElementById("inputType").value;
+      const day = document.getElementById("inputDay").value;
+      const start = document.getElementById("inputStart").value;
+      const end = document.getElementById("inputEnd").value;
+      const locationRaw = document.getElementById("inputLocation").value;
+
+      if (!courseRaw || !typeRaw || !start || !end || !locationRaw) {
+        alert("Please fill in every field.");
+        return;
+      }
+
+      // Apply formatting rules before storing
+      const course = normalizeCourse(courseRaw);
+      const type = toTitleCase(typeRaw);
+      const location = toTitleCase(locationRaw);
+
+      const newClass = { course, type, day, start, end, location };
+      classes.push(newClass);
+
+      renderClasses();
+
+      document.getElementById("inputCourse").value = "";
+      document.getElementById("inputType").value = "";
+      document.getElementById("inputStart").value = "";
+      document.getElementById("inputEnd").value = "";
+      document.getElementById("inputLocation").value = "";
+    }
+
     renderClasses();
   </script>
 
