@@ -9,8 +9,8 @@
 
   <h1>ClassCal</h1>
 
-  <!-- ADD CLASS FORM -->
-  <h2>Add a class</h2>
+  <!-- ADD / EDIT CLASS FORM -->
+  <h2 id="formTitle">Add a class</h2>
   <div>
     <input type="text" id="inputCourse" placeholder="Course (e.g. GNG 1105-D00)">
     <input type="text" id="inputType" placeholder="Type (e.g. Lecture)">
@@ -29,7 +29,7 @@
     <input type="time" id="inputEnd">
     <input type="text" id="inputLocation" placeholder="Location">
 
-    <button onclick="addClass()">Add Class</button>
+    <button id="submitBtn" onclick="addClass()">Add Class</button>
   </div>
 
   <!-- CLASS TABLE -->
@@ -43,19 +43,20 @@
         <th>Start</th>
         <th>End</th>
         <th>Location</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="classTableBody">
-      <!-- rows get filled in here by JavaScript -->
+     
     </tbody>
   </table>
 
   <script>
-    // Starts empty — classes are added by the user through the page.
     const classes = [];
 
-    // Capitalizes the first letter of every word.
-    // "morisset hall 218" -> "Morisset Hall 218"
+  
+    let editingIndex = null;
+
     function toTitleCase(str) {
       return str
         .toLowerCase()
@@ -64,8 +65,6 @@
         .join(" ");
     }
 
-    // Uppercases everything and strips out all spaces.
-    // "gng 1105-d00" -> "GNG1105-D00"
     function normalizeCourse(str) {
       return str.toUpperCase().replace(/\s+/g, "");
     }
@@ -74,7 +73,7 @@
       const tbody = document.getElementById("classTableBody");
       tbody.innerHTML = "";
 
-      for (const c of classes) {
+      classes.forEach((c, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${c.course}</td>
@@ -83,9 +82,13 @@
           <td>${c.start}</td>
           <td>${c.end}</td>
           <td>${c.location}</td>
+          <td>
+            <button onclick="startEdit(${index})">Edit</button>
+            <button onclick="deleteClass(${index})">Delete</button>
+          </td>
         `;
         tbody.appendChild(row);
-      }
+      });
     }
 
     function addClass() {
@@ -101,16 +104,50 @@
         return;
       }
 
-      // Apply formatting rules before storing
       const course = normalizeCourse(courseRaw);
       const type = toTitleCase(typeRaw);
       const location = toTitleCase(locationRaw);
 
       const newClass = { course, type, day, start, end, location };
-      classes.push(newClass);
+
+      if (editingIndex === null) {
+        // Normal add
+        classes.push(newClass);
+      } else {
+        //overwrite it in place
+        classes[editingIndex] = newClass;
+        editingIndex = null;
+        document.getElementById("formTitle").textContent = "Add a class";
+        document.getElementById("submitBtn").textContent = "Add Class";
+      }
 
       renderClasses();
+      clearForm();
+    }
 
+    function startEdit(index) {
+      const c = classes[index];
+
+      // Load this class's current values back into the form
+      document.getElementById("inputCourse").value = c.course;
+      document.getElementById("inputType").value = c.type;
+      document.getElementById("inputDay").value = c.day;
+      document.getElementById("inputStart").value = c.start;
+      document.getElementById("inputEnd").value = c.end;
+      document.getElementById("inputLocation").value = c.location;
+
+      // Remember which entry we're editing, and update the UI to reflect it
+      editingIndex = index;
+      document.getElementById("formTitle").textContent = "Edit class";
+      document.getElementById("submitBtn").textContent = "Save Changes";
+    }
+
+    function deleteClass(index) {
+      classes.splice(index, 1);
+      renderClasses();
+    }
+
+    function clearForm() {
       document.getElementById("inputCourse").value = "";
       document.getElementById("inputType").value = "";
       document.getElementById("inputStart").value = "";
