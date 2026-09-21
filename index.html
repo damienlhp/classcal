@@ -9,6 +9,13 @@
 
   <h1>ClassCal</h1>
 
+  <!-- TERM DATES -->
+  <h2>Term dates</h2>
+  <div>
+    <label>First day of classes: <input type="date" id="termStart"></label>
+    <label>Last day of classes: <input type="date" id="termEnd"></label>
+  </div>
+
   <!-- ADD / EDIT CLASS FORM -->
   <h2 id="formTitle">Add a class</h2>
   <div>
@@ -47,7 +54,7 @@
       </tr>
     </thead>
     <tbody id="classTableBody">
-     
+      <!-- rows get filled in here by JavaScript -->
     </tbody>
   </table>
 
@@ -56,6 +63,9 @@
 
   
     let editingIndex = null;
+
+  
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
     function toTitleCase(str) {
       return str
@@ -114,7 +124,7 @@
         // Normal add
         classes.push(newClass);
       } else {
-        //overwrite it in place
+        
         classes[editingIndex] = newClass;
         editingIndex = null;
         document.getElementById("formTitle").textContent = "Add a class";
@@ -128,7 +138,6 @@
     function startEdit(index) {
       const c = classes[index];
 
-      // Load this class's current values back into the form
       document.getElementById("inputCourse").value = c.course;
       document.getElementById("inputType").value = c.type;
       document.getElementById("inputDay").value = c.day;
@@ -136,7 +145,6 @@
       document.getElementById("inputEnd").value = c.end;
       document.getElementById("inputLocation").value = c.location;
 
-      // Remember which entry we're editing, and update the UI to reflect it
       editingIndex = index;
       document.getElementById("formTitle").textContent = "Edit class";
       document.getElementById("submitBtn").textContent = "Save Changes";
@@ -155,7 +163,38 @@
       document.getElementById("inputLocation").value = "";
     }
 
+    // ---- DATE MATH (Step 5) ----
+
+    // Given a day name like "Wednesday", returns its index in DAYS (0-6).
+    function dayNameToIndex(dayName) {
+      return DAYS.indexOf(dayName);
+    }
+
+    function jsDateToOurIndex(date) {
+      const jsDay = date.getDay(); 
+      // Convert: JS Sunday(0) should become our index 6.
+      // JS Monday(1) should become our index 0. So: (jsDay + 6) % 7
+      return (jsDay + 6) % 7;
+    }
+
+    
+    function findFirstOccurrence(termStartDate, dayName) {
+      const targetIndex = dayNameToIndex(dayName);
+      const startIndex = jsDateToOurIndex(termStartDate);
+
+      let daysToAdd = targetIndex - startIndex;
+      if (daysToAdd < 0) {
+        daysToAdd += 7; // target day already passed this week, jump to next week
+      }
+
+      const result = new Date(termStartDate);
+      result.setDate(result.getDate() + daysToAdd);
+      return result;
+    }
+
     renderClasses();
+
+    
   </script>
 
 </body>
