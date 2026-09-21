@@ -61,11 +61,24 @@
   <script>
     const classes = [];
 
-  
+    // editingIndex tracks which class (if any) is currently being edited.
+    // null means "not editing" — we're in normal Add mode.
     let editingIndex = null;
 
-  
+    // Our own day ordering, Monday-first, to match how people usually
+    // think about a school week. Index = position, value = day name.
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+    // Maps our day names to the two-letter codes the .ics format requires.
+    const ICS_DAY_CODE = {
+      Monday: "MO",
+      Tuesday: "TU",
+      Wednesday: "WE",
+      Thursday: "TH",
+      Friday: "FR",
+      Saturday: "SA",
+      Sunday: "SU"
+    };
 
     function toTitleCase(str) {
       return str
@@ -121,10 +134,8 @@
       const newClass = { course, type, day, start, end, location };
 
       if (editingIndex === null) {
-        // Normal add
         classes.push(newClass);
       } else {
-        
         classes[editingIndex] = newClass;
         editingIndex = null;
         document.getElementById("formTitle").textContent = "Add a class";
@@ -165,26 +176,22 @@
 
     // ---- DATE MATH (Step 5) ----
 
-    // Given a day name like "Wednesday", returns its index in DAYS (0-6).
     function dayNameToIndex(dayName) {
       return DAYS.indexOf(dayName);
     }
 
     function jsDateToOurIndex(date) {
-      const jsDay = date.getDay(); 
-      // Convert: JS Sunday(0) should become our index 6.
-      // JS Monday(1) should become our index 0. So: (jsDay + 6) % 7
+      const jsDay = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
       return (jsDay + 6) % 7;
     }
 
-    
     function findFirstOccurrence(termStartDate, dayName) {
       const targetIndex = dayNameToIndex(dayName);
       const startIndex = jsDateToOurIndex(termStartDate);
 
       let daysToAdd = targetIndex - startIndex;
       if (daysToAdd < 0) {
-        daysToAdd += 7; // target day already passed this week, jump to next week
+        daysToAdd += 7;
       }
 
       const result = new Date(termStartDate);
@@ -192,9 +199,89 @@
       return result;
     }
 
-    renderClasses();
+    // ---- ICS FILE GENERATION (Step 6) ----
 
-    
+    // Pads a number to at least 2 digits with a leading zero.
+    // 9 -> "09", 14 -> "14"
+    function pad(n) {
+      return n.toString().padStart(2, "0");
+    }
+
+    // Turns a Date object + a "HH:MM" time string into the ICS format
+    // the spec requires: YYYYMMDDTHHMMSS
+    function formatICSDateTime(date, timeStr) {
+      const [hours, minutes] = timeStr.split(":");
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1); // JS months are 0-11
+      const day = pad(date.getDate());
+      return `${year}${month}${day}T${pad(hours)}${pad(minutes)}00`;
+    }
+
+    // Formats the term end date as an RRULE UNTIL value, set to the
+    // very end of that day so the last day of term is fully included.
+    function formatICSUntil(dateStr) {
+      const date = new Date(dateStr + "T23:59:59");
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      return `${year}${month}${day}T235959`;
+    }
+
+    // Builds one VEVENT block (as a single string) for one class.
+    function buildEvent(classObj, termStartDate, termEndDateStr, index) {
+      const firstOccurrence = findFirstOccurrence(termStartDate, classObj.day);
+      const dtStart = formatICSDateTime(firstOccurrence, classObj.start);
+      const dtEnd = formatICSDateTime(firstOccurrence, classObj.end);
+      const until = formatICSUntil(termEndDateStr);
+      const dayCode = ICS_DAY_CODE[classObj.day];
+      const uid = `class-${index}-${Date.now()}@classcal`;
+
+      return [
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `RRULE:FREQ=WEEKLY;BYDAY=${dayCode};UNTIL=${until}`,
+        `SUMMARY:${classObj.course} ${classObj.type}`,
+        `LOCATION:${classObj.location}`,
+        "END:VEVENT"
+      ].join("\r\n");
+    }
+
+    // Builds the complete .ics file content as one big string.
+    function buildICSFile() {
+      const termStartStr = document.getElementById("termStart").value;
+      const termEndStr = document.getElementById("termEnd").value;
+
+      if (!termStartStr || !termEndStr) {
+        alert("Please set both term start and end dates.");
+        return null;
+      }
+
+      if (classes.length === 0) {
+        alert("Add at least one class first.");
+        return null;
+      }
+
+      const termStartDate = new Date(termStartStr + "T00:00:00");
+
+      const events = classes.map((c, index) =>
+        buildEvent(c, termStartDate, termEndStr, index)
+      );
+
+      const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//ClassCal//EN",
+        "CALSCALE:GREGORIAN",
+        ...events,
+        "END:VCALENDAR"
+      ];
+
+      return lines.join("\r\n");
+    }
+
+    renderClasses();
   </script>
 
 </body>
