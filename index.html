@@ -58,6 +58,10 @@
     </tbody>
   </table>
 
+  <!-- DOWNLOAD -->
+  <h2>Export</h2>
+  <button onclick="downloadICS()">Download Calendar (.ics)</button>
+
   <script>
     const classes = [];
 
@@ -201,24 +205,18 @@
 
     // ---- ICS FILE GENERATION (Step 6) ----
 
-    // Pads a number to at least 2 digits with a leading zero.
-    // 9 -> "09", 14 -> "14"
     function pad(n) {
       return n.toString().padStart(2, "0");
     }
 
-    // Turns a Date object + a "HH:MM" time string into the ICS format
-    // the spec requires: YYYYMMDDTHHMMSS
     function formatICSDateTime(date, timeStr) {
       const [hours, minutes] = timeStr.split(":");
       const year = date.getFullYear();
-      const month = pad(date.getMonth() + 1); // JS months are 0-11
+      const month = pad(date.getMonth() + 1);
       const day = pad(date.getDate());
       return `${year}${month}${day}T${pad(hours)}${pad(minutes)}00`;
     }
 
-    // Formats the term end date as an RRULE UNTIL value, set to the
-    // very end of that day so the last day of term is fully included.
     function formatICSUntil(dateStr) {
       const date = new Date(dateStr + "T23:59:59");
       const year = date.getFullYear();
@@ -227,7 +225,6 @@
       return `${year}${month}${day}T235959`;
     }
 
-    // Builds one VEVENT block (as a single string) for one class.
     function buildEvent(classObj, termStartDate, termEndDateStr, index) {
       const firstOccurrence = findFirstOccurrence(termStartDate, classObj.day);
       const dtStart = formatICSDateTime(firstOccurrence, classObj.start);
@@ -248,7 +245,6 @@
       ].join("\r\n");
     }
 
-    // Builds the complete .ics file content as one big string.
     function buildICSFile() {
       const termStartStr = document.getElementById("termStart").value;
       const termEndStr = document.getElementById("termEnd").value;
@@ -279,6 +275,30 @@
       ];
 
       return lines.join("\r\n");
+    }
+
+    // ---- DOWNLOAD (Step 7) ----
+
+    function downloadICS() {
+      const icsContent = buildICSFile();
+
+      // buildICSFile() returns null if validation failed (missing dates/classes)
+      if (icsContent === null) {
+        return;
+      }
+
+      const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "classcal.ics";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
     }
 
     renderClasses();
