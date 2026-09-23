@@ -39,6 +39,12 @@
     <button id="submitBtn" onclick="addClass()">Add Class</button>
   </div>
 
+  <!-- SCREENSHOT UPLOAD -->
+  <h2>Or upload a screenshot</h2>
+  <input type="file" id="imageInput" accept="image/*">
+  <button onclick="extractFromImage()">Extract Classes from Image</button>
+  <p id="imageStatus"></p>
+
   <!-- PASTE TO PARSE -->
   <h2>Or paste your schedule</h2>
   <p>One class per line: <code>Course, Type, Day, Start (HH:MM), End (HH:MM), Location</code></p>
@@ -239,6 +245,24 @@
       document.getElementById("pasteInput").value = "";
 
       alert(`Added ${addedCount} class(es).` + (skippedCount > 0 ? ` Skipped ${skippedCount} line(s) that didn't match the expected format.` : ""));
+    }
+
+    // ---- SCREENSHOT EXTRACTION (Step 9) ----
+
+    // Reads a File object and returns a Promise that resolves with its
+    // Base64-encoded content (without the "data:image/png;base64," prefix).
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // reader.result looks like "data:image/png;base64,AAAA..."
+          // we only want the part AFTER the comma
+          const base64 = reader.result.split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
 
     // ---- DATE MATH (Step 5) ----
