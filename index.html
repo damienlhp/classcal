@@ -39,6 +39,13 @@
     <button id="submitBtn" onclick="addClass()">Add Class</button>
   </div>
 
+  <!-- PASTE TO PARSE -->
+  <h2>Or paste your schedule</h2>
+  <p>One class per line: <code>Course, Type, Day, Start (HH:MM), End (HH:MM), Location</code></p>
+  <textarea id="pasteInput" rows="6" cols="60" placeholder="GNG 1105-D00, Lecture, Monday, 08:30, 09:50, Morisset Hall 218"></textarea>
+  <br>
+  <button onclick="parsePastedSchedule()">Parse & Add</button>
+
   <!-- CLASS TABLE -->
   <h2>Your classes</h2>
   <table border="1" cellpadding="6">
@@ -176,6 +183,62 @@
       document.getElementById("inputStart").value = "";
       document.getElementById("inputEnd").value = "";
       document.getElementById("inputLocation").value = "";
+    }
+
+    // ---- PASTE TO PARSE (Step 8) ----
+
+    function parsePastedSchedule() {
+      const text = document.getElementById("pasteInput").value;
+
+      if (!text.trim()) {
+        alert("Paste your schedule text first.");
+        return;
+      }
+
+      const lines = text.split("\n");
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        // Skip blank lines silently — common when pasting from spreadsheets
+        if (trimmedLine === "") {
+          continue;
+        }
+
+        const fields = trimmedLine.split(",").map(f => f.trim());
+
+        if (fields.length !== 6) {
+          skippedCount++;
+          continue; // this line doesn't match our expected format, skip it
+        }
+
+        const [courseRaw, typeRaw, day, start, end, locationRaw] = fields;
+
+        // Basic sanity check on the day field
+        if (!DAYS.includes(day)) {
+          skippedCount++;
+          continue;
+        }
+
+        const newClass = {
+          course: normalizeCourse(courseRaw),
+          type: toTitleCase(typeRaw),
+          day: day,
+          start: start,
+          end: end,
+          location: toTitleCase(locationRaw)
+        };
+
+        classes.push(newClass);
+        addedCount++;
+      }
+
+      renderClasses();
+      document.getElementById("pasteInput").value = "";
+
+      alert(`Added ${addedCount} class(es).` + (skippedCount > 0 ? ` Skipped ${skippedCount} line(s) that didn't match the expected format.` : ""));
     }
 
     // ---- DATE MATH (Step 5) ----
